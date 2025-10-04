@@ -1,43 +1,66 @@
-#include <arpa/inet.h>
+#include <arpa/inet.h> 
+#include <netdb.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <strings.h> 
 #include <sys/socket.h>
-#include <unistd.h>
+#include <unistd.h> 
+#define MAX 80
 #define PORT 8080
-
-int main(int argc, char const* argv[])
+#define SA struct sockaddr
+void func(int sockfd)
 {
-    int stato, reado, client_fd;
-    struct sockaddr_in serv_addr;
-    char* haro = "Hola desde el clienteeee";
-    char buffer[1024] = { 0 };
-    if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("\n error de crecion de socket pipipi \n");
-        return -1;
+    char buff[MAX];
+    int n;
+    for (;;) {
+        bzero(buff, sizeof(buff));
+        printf("Ingrese algo : ");
+        n = 0;
+        while ((buff[n++] = getchar()) != '\n')
+            ;
+        write(sockfd, buff, sizeof(buff));
+        bzero(buff, sizeof(buff));
+        read(sockfd, buff, sizeof(buff));
+        printf("Del server : %s", buff);
+        if ((strncmp(buff, "bye", 4)) == 0) {
+            printf("Se salio el cliente xd...\n");
+            break;
+        }
     }
+}
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+int main()
+{
+    int sockfd, connfd;
+    struct sockaddr_in servaddr, cli;
 
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)
-        <= 0) {
-        printf(
-            "\ndireccion no soportada PERIOD BV\n");
-        return -1;
+   
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        printf("Error de creacion de socket pipipi...\n");
+        exit(0);
     }
+    else
+        printf("Se creo el socket jeje..\n");
+    bzero(&servaddr, sizeof(servaddr));
 
-    if ((stato = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
-        printf("\nFallo la conexion jajaja\n");
-        return -1;
+   
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(PORT);
+
+    
+    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr))
+        != 0) {
+        printf("No se pudo conectar con el servidor..\n");
+        exit(0);
     }
+    else
+        printf("Conectado al servidor..\n");
 
-    send(client_fd, haro, strlen(haro), 0);
-    printf("Hwenas, se envio el mensaje\n");
-    reado = read(client_fd, buffer,
-                   1024 - 1); 
-    printf("%s\n", buffer);
+ 
+    func(sockfd);
 
-    close(client_fd);
-    return 0;
-
+    close(sockfd);
 }
